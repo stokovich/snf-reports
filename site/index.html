@@ -188,6 +188,17 @@ svg .tk { fill: var(--fg); font-weight: 500 }
     if (!r.ok) throw new Error(r.status);
     return r.json();
   }
+  // the build started by "Update now" (the newest manual run since the click), or null
+  async function lastRun(disp, since) {
+    try {
+      const r = await fetch('https://api.github.com/repos/' + disp.repo + '/actions/workflows/' + disp.workflow +
+        '/runs?event=workflow_dispatch&per_page=1', {
+        headers: { Authorization: 'Bearer ' + disp.token, Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+      if (!r.ok) return null;
+      const run = ((await r.json()).workflow_runs || [])[0];
+      return run && Date.parse(run.created_at) >= since ? run : null;
+    } catch (e) { return null; }
+  }
   $('#update').addEventListener('click', async () => {
     const btn = $('#update');
     btn.disabled = true;
@@ -202,13 +213,19 @@ svg .tk { fill: var(--fg); font-weight: 500 }
           body: JSON.stringify({ ref: disp.ref || 'main' }),
         });
         if (r.status !== 204) throw new Error('GitHub answered ' + r.status);
-        // the build takes about a minute, the site a little more to show it
+        const since = Date.now() - 30000;
+        // the build takes about two minutes, the site a little more to show it; a build that fails on
+        // GitHub's side is reported at once instead of waiting out the whole time
         for (let i = 0; i < 30; i++) {
           updStatus('Updating… ' + (i * 15) + ' s');
           await sleep(15000);
           ENV = await fetchEnv();
           const d = await open(KEY);
           if (d.generated !== before) { showApp(d); updStatus('Updated ' + new Date(d.generated).toLocaleTimeString('en-GB')); btn.disabled = false; return; }
+          const run = await lastRun(disp, since);
+          if (run && run.status === 'completed' && run.conclusion !== 'success') {
+            throw new Error('the build on GitHub ended with "' + run.conclusion + '" - press Update now again');
+          }
         }
         updStatus('The update is taking long - try again in a few minutes.');
       } else {
