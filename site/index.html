@@ -104,7 +104,11 @@ svg .tk { fill: var(--fg); font-weight: 500 }
 
 <div class="wrap" id="app" hidden>
   <header style="display:grid;gap:8px">
-    <button class="btn ghost" type="button" id="signout" style="justify-self:end">Sign out</button>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end">
+      <span class="tag" id="upd-status" role="status"></span>
+      <button class="btn ghost" type="button" id="update" title="Get fresh data from FIO now instead of waiting for the hourly update">Update now</button>
+      <button class="btn ghost" type="button" id="signout">Sign out</button>
+    </div>
     <span class="tag">SNF group · FIO · per day</span>
     <h1>What every member makes and uses</h1>
     <p class="sub" id="sub">Loading the data…</p>
@@ -166,7 +170,57 @@ svg .tk { fill: var(--fg); font-weight: 500 }
     return JSON.parse(text);
   }
   function showLock(msg) { $('#app').hidden = true; $('#lock').hidden = false; $('#err').textContent = msg || ''; $('#pw').focus(); }
-  function showApp(d) { D = d; $('#lock').hidden = true; $('#app').hidden = false; if (!members.length) init(); else render(); }
+  let KEY = null;
+  function showApp(d, key) {
+    D = d; KEY = key || KEY;
+    $('#lock').hidden = true; $('#app').hidden = false;
+    if (members.length) { $('#members').innerHTML = ''; $('#tabs').innerHTML = ''; const c = $('#cat'); while (c.options.length > 1) c.remove(1); }
+    init();
+  }
+
+  // ---------- "Update now": starts the build on GitHub (when the report carries a dispatch token) and waits
+  // for the new data; without a token it only fetches the latest hourly build ----------
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const updStatus = t => { $('#upd-status').textContent = t; };
+  async function fetchEnv() {
+    const r = await fetch('data.enc?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }
+  $('#update').addEventListener('click', async () => {
+    const btn = $('#update');
+    btn.disabled = true;
+    const before = D.generated;
+    try {
+      const disp = D.dispatch;
+      if (disp && disp.token) {
+        updStatus('Starting the update…');
+        const r = await fetch('https://api.github.com/repos/' + disp.repo + '/actions/workflows/' + disp.workflow + '/dispatches', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + disp.token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ref: disp.ref || 'main' }),
+        });
+        if (r.status !== 204) throw new Error('GitHub answered ' + r.status);
+        // the build takes about a minute, the site a little more to show it
+        for (let i = 0; i < 30; i++) {
+          updStatus('Updating… ' + (i * 15) + ' s');
+          await sleep(15000);
+          ENV = await fetchEnv();
+          const d = await open(KEY);
+          if (d.generated !== before) { showApp(d); updStatus('Updated ' + new Date(d.generated).toLocaleTimeString('en-GB')); btn.disabled = false; return; }
+        }
+        updStatus('The update is taking long - try again in a few minutes.');
+      } else {
+        ENV = await fetchEnv();
+        const d = await open(KEY);
+        showApp(d);
+        updStatus(d.generated !== before ? 'Loaded the latest data' : 'Already the latest data (updated every hour)');
+      }
+    } catch (e) {
+      updStatus('Update failed: ' + e.message);
+    }
+    setTimeout(() => { btn.disabled = false; }, 60000);
+  });
   $('#lock').addEventListener('submit', async e => {
     e.preventDefault();
     $('#unlock').disabled = true; $('#err').textContent = 'Unlocking…';
@@ -175,7 +229,7 @@ svg .tk { fill: var(--fg); font-weight: 500 }
       const d = await open(key);
       if ($('#remember').checked) store(KEY_ITEM, toB64(await crypto.subtle.exportKey('raw', key)));
       $('#pw').value = '';
-      showApp(d);
+      showApp(d, key);
     } catch (err) { $('#pw').value = ''; showLock('Wrong password.'); }
     $('#unlock').disabled = false;
   });
@@ -186,7 +240,7 @@ svg .tk { fill: var(--fg); font-weight: 500 }
     if (saved) {
       try {
         const key = await crypto.subtle.importKey('raw', b64(saved), 'AES-GCM', true, ['decrypt']);
-        showApp(await open(key));
+        showApp(await open(key), key);
         return;
       } catch (e) { try { localStorage.removeItem(KEY_ITEM); } catch (x) {} showLock('The password has changed - enter the new one.'); return; }
     }

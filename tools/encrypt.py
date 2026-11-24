@@ -42,6 +42,14 @@ def main():
     if len(password) < 8:
         sys.exit("SITE_PASSWORD is missing or shorter than 8 characters")
     plain = open(src, "rb").read()
+    # "Update now" on the page: a token that can only start this repo's workflow, inside the encrypted report -
+    # only those who know the password get it
+    token = os.environ.get("DISPATCH_TOKEN")
+    if token:
+        data = json.loads(plain)
+        data["dispatch"] = {"token": token, "repo": os.environ.get("GITHUB_REPOSITORY", ""),
+                            "workflow": "build.yml", "ref": "main"}
+        plain = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     env = encrypt(plain, password)
     if decrypt(env, password) != plain:
         sys.exit("round trip failed")
