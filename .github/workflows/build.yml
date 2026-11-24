@@ -31,7 +31,8 @@ jobs:
       - name: Keep the schedule alive
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/build.yml/enable" --silent || echo "keep-alive: not possible this run"
+        run: |
+          gh api -X PUT "repos/${{ github.repository }}/actions/workflows/build.yml/enable" --silent || echo "keep-alive - not possible this run"
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
