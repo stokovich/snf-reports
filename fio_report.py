@@ -19,6 +19,7 @@ env: FIO_KEY (required), FIO_GROUP (default 84306218)
 """
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -117,7 +118,17 @@ def main():
         sys.exit(f"group {group}: FIO answered {st}")
     _, bl = get("/building/allbuildings")
     _, mats = get("/material/allmaterials")
+    _, systems = get("/systemstars")
+    system_name = {s["NaturalId"]: s.get("Name") for s in (systems or [])}
     buildings = {b["Ticker"]: b for b in (bl or [])}
+
+    def display_name(name):
+        """An unnamed planet (FIO gives its natural id, e.g. OT-442a) in a named system is shown as the game
+        shows it: "<system name> <letter>" (Gundabad a); in an unnamed system it stays OT-442a."""
+        m = re.match(r"^([A-Z]{2}-\d{3})([a-z])$", name or "")
+        if m and system_name.get(m.group(1)) and system_name[m.group(1)] != m.group(1):
+            return system_name[m.group(1)] + " " + m.group(2)
+        return name
     materials = {m["Ticker"]: {"name": m.get("Name"), "cat": m.get("CategoryName")} for m in (mats or [])}
 
     members, raw = [], {}
@@ -158,6 +169,7 @@ def main():
             site_name.setdefault(rec["SiteId"], rec.get("PlanetName") or rec.get("PlanetNaturalId"))
         for s in sites:
             site_name[s["SiteId"]] = s.get("PlanetName") or s.get("PlanetIdentifier")
+        site_name = {k: display_name(v) for k, v in site_name.items()}
         prod = production_burn(r.get("production") or [], sites) if r.get("production") is not None else {}
         if r.get("workforce") is not None:
             wf, wf_src = workforce_real(r["workforce"]), "fio"
@@ -188,24 +200,27 @@ def main():
         })
         data[name] = {"total": total, "sites": per_site}
 
-    for d in data.values():
-        for bucket in [d["total"]] + list(d["sites"].values()):
-            for v in bucket.values():
-                for f in ("in", "out", "wf"):
-                    v[f] = round(v[f], 3)
-                v["net"] = round(v["out"] - v["in"] - v["wf"], 3)
+    def r(x):
+        return round(x, 1) if abs(x) >= 1 else round(x, 3)
+
+    def pack(bucket):
+        """{ticker: [in, out, workforce]} per day - the page computes net = out - in - workforce."""
+        return {t: [r(v["in"]), r(v["out"]), r(v["wf"])] for t, v in bucket.items()
+                if abs(v["in"]) + abs(v["out"]) + abs(v["wf"]) > 0}
 
     used = sorted({t for d in data.values() for t in d["total"]})
     out = {
         "generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "group": group,
         "members": members,
-        "materials": {t: dict(materials.get(t, {}), luxury=t in luxury) for t in used},
-        "data": data,
+        "materials": {t: [materials.get(t, {}).get("cat") or "", 1 if t in luxury else 0] for t in used},
+        "total": {n: pack(d["total"]) for n, d in data.items()},
+        "sites": {n: {s: pack(b) for s, b in d["sites"].items()} for n, d in data.items()},
     }
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
-    print(f"{out_path}: {len(members)} members, {len(used)} materials")
+    # the log of a public repo is public - counts only, no data
+    print(f"report: {len(members)} members, {len(used)} materials")
 
 
 if __name__ == "__main__":

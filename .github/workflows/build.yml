@@ -1,0 +1,51 @@
+# Every hour: the report from FIO, encrypted with the site password, published to GitHub Pages.
+# The log of a public repo is public - the scripts print counts only, never data.
+name: Build reports
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['site/**', 'fio_report.py', 'tools/encrypt.py', '.github/workflows/build.yml']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet cryptography
+      - name: Report from FIO
+        env:
+          FIO_KEY: ${{ secrets.FIO_KEY }}
+        run: python fio_report.py "$RUNNER_TEMP/data.json"
+      - name: Encrypt
+        env:
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+        run: |
+          mkdir -p _site
+          cp site/index.html _site/
+          python tools/encrypt.py "$RUNNER_TEMP/data.json" _site/data.enc
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4

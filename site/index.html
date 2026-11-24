@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>SNF In and Out</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px) }
+[hidden] { display: none !important }
+#lock { max-width: 420px; margin: 12vh auto 0; display: grid; gap: 12px }
+.lock input[type="password"] { font: 15px var(--f-body); padding: 8px 10px; width: 100% }
+.btn { font: 600 15px var(--f-display); letter-spacing: .03em; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); padding: 7px 14px; border-radius: 6px; cursor: pointer; justify-self: start }
+.btn.ghost { background: transparent; color: var(--fg); border-color: var(--line) }
+.err { color: var(--minus); min-height: 1.4em }
+/* Layout: one column of variant panels under a sticky control bar; data tables scroll inside their own boxes. */
+:root {
+  --bg: #f3f5f7; --panel: #ffffff; --fg: #18202a; --muted: #5b6878; --line: #d9dfe6; --soft: #eaeef2;
+  --accent: #c77700; --accent-ink: #ffffff;
+  --plus: #1f8a63; --plus-soft: #d5efe4; --minus: #c43d3d; --minus-soft: #f6dada;
+  --m1: #2f6fb3; --m2: #c77700; --m3: #7a4fb0; --m4: #1f8a8a; --m5: #b0436e;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161c; --panel: #171e26; --fg: #e3e8ee; --muted: #93a0ae; --line: #2a3441; --soft: #1f2832;
+  --accent: #f0a030; --accent-ink: #1a1206;
+  --plus: #46c08f; --plus-soft: #173a2d; --minus: #ef6b6b; --minus-soft: #44201f;
+  --m1: #6aa5e8; --m2: #f0a030; --m3: #b08ae6; --m4: #4cc4c4; --m5: #e57ba3; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11161c; --panel: #171e26; --fg: #e3e8ee; --muted: #93a0ae; --line: #2a3441; --soft: #1f2832;
+  --accent: #f0a030; --accent-ink: #1a1206;
+  --plus: #46c08f; --plus-soft: #173a2d; --minus: #ef6b6b; --minus-soft: #44201f;
+  --m1: #6aa5e8; --m2: #f0a030; --m3: #b08ae6; --m4: #4cc4c4; --m5: #e57ba3; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--f-body); margin: 0 }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; display: grid; gap: 18px }
+h1, h2 { font-family: var(--f-display); font-weight: 600; letter-spacing: .02em; text-wrap: balance; margin: 0 }
+h1 { font-size: 34px; line-height: 1.05 }
+h2 { font-size: 24px }
+.sub { color: var(--muted); max-width: 72ch }
+.mono, td.num, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums }
+.members { display: flex; flex-wrap: wrap; gap: 8px }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 3px 10px; font-size: 12.5px }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none }
+.tag { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted) }
+.tag.warn { color: var(--minus) }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; border-bottom: 1px solid var(--line) }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px }
+.tabs button { font: 600 15px var(--f-display); letter-spacing: .03em; border: 1px solid var(--line); background: var(--panel); color: var(--fg); padding: 5px 12px; border-radius: 6px; cursor: pointer }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px }
+select, input[type="search"], input[type="number"] { font: 13px var(--f-body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px }
+input[type="number"] { width: 70px }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 12px; min-width: 0 }
+.why { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 20px; font-size: 13px; color: var(--muted) }
+.why b { color: var(--fg); font-weight: 600 }
+.scroll { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 6px }
+table { border-collapse: separate; border-spacing: 0; font-size: 12.5px; width: max-content; min-width: 100% }
+th, td { padding: 3px 8px; border-bottom: 1px solid var(--soft); white-space: nowrap; text-align: right }
+th { position: sticky; top: 0; background: var(--panel); z-index: 2; font-weight: 600; cursor: default }
+th.sort { cursor: pointer }
+th:first-child, td:first-child { position: sticky; left: 0; background: var(--panel); z-index: 1; text-align: left }
+th:first-child { z-index: 3 }
+td.t { font-family: var(--f-mono); font-weight: 500 }
+td.cat, th.cat { text-align: left; color: var(--muted) }
+.cell { min-width: 64px }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px }
+.hbars { display: grid; gap: 3px }
+.hb { display: grid; grid-template-columns: 52px 1fr 84px; gap: 8px; align-items: center; font-size: 12.5px }
+.hb .track { height: 14px; background: var(--soft); border-radius: 3px; position: relative; overflow: hidden }
+.hb .fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 3px }
+.hb .v { text-align: right }
+.hb .det { grid-column: 2 / 4; font-size: 11px; color: var(--muted); margin-top: -2px }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px }
+.cov { height: 8px; background: var(--minus-soft); border-radius: 4px; overflow: hidden; width: 120px; display: inline-block; vertical-align: middle }
+.cov i { display: block; height: 100%; background: var(--plus) }
+.who { text-align: left; white-space: normal; min-width: 180px }
+.pos { color: var(--plus) } .neg { color: var(--minus) }
+svg text { fill: var(--muted); font: 11px var(--f-mono) }
+svg .tk { fill: var(--fg); font-weight: 500 }
+.foot { font-size: 12.5px; color: var(--muted); display: grid; gap: 4px }
+.empty { color: var(--muted); padding: 12px }
+@media (prefers-reduced-motion: no-preference) { .fill { transition: width .25s } }
+</style>
+</head>
+<body>
+<form class="lock wrap" id="lock" hidden autocomplete="on">
+  <span class="tag">SNF group · FIO</span>
+  <h1>SNF In and Out</h1>
+  <p class="sub">The reports are encrypted. Enter the group password.</p>
+  <input type="text" name="username" value="SNF" autocomplete="username" hidden>
+  <input type="password" id="pw" autocomplete="current-password" placeholder="Password" required>
+  <label><input type="checkbox" id="remember" checked> Remember on this device</label>
+  <button class="btn" type="submit" id="unlock">Unlock</button>
+  <div class="err" id="err" role="alert"></div>
+</form>
+
+<div class="wrap" id="app" hidden>
+  <header style="display:grid;gap:8px">
+    <button class="btn ghost" type="button" id="signout" style="justify-self:end">Sign out</button>
+    <span class="tag">SNF group · FIO · per day</span>
+    <h1>What every member makes and uses</h1>
+    <p class="sub" id="sub">Loading the data…</p>
+    <div class="members" id="members"></div>
+  </header>
+
+  <div class="bar">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="ctl">
+      <label for="cat">Category</label>
+      <select id="cat"><option value="">all</option></select>
+      <label><input type="checkbox" id="lux"> without luxury needs</label>
+      <label for="thr">threshold</label><input type="number" id="thr" min="0" step="1" value="5"><span class="tag">/day</span>
+    </div>
+  </div>
+
+  <section class="panel" id="view"></section>
+
+  <div class="foot">
+    <div><b>How it is calculated.</b> Output and input of the production lines as Refined PrUn's XIT BURN does it: the queued orders of every line (only the recurring ones when the member has any), each as amount × capacity ÷ their total time in days. Workforce: the needs FIO reports for the base; for a member who does not share workforce with the group it is calculated from the workers the buildings require.</div>
+    <div><b>Net</b> = output − input − workforce. Positive is a surplus, negative a deficit. The threshold hides materials where no member reaches that value.</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const VARIANTS = [
+    { id: 'matrix', name: 'Matrix' },
+    { id: 'member', name: 'Member' },
+    { id: 'match', name: 'Who can supply' },
+  ];
+  const MCOL = ['--m1', '--m2', '--m3', '--m4', '--m5'];
+  const $ = s => document.querySelector(s);
+  const el = (tag, attrs, html) => { const e = document.createElement(tag); if (attrs) Object.assign(e, attrs); if (html != null) e.innerHTML = html; return e; };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+  function fmt(x, sign) {
+    const a = Math.abs(x);
+    const s = a >= 10000 ? (a / 1000).toFixed(1) + 'k' : a >= 100 ? Math.round(a).toLocaleString('en-US') : a >= 10 ? a.toFixed(1) : a >= 1 ? a.toFixed(2) : a.toFixed(3);
+    return (x < 0 ? '−' : sign && x > 0 ? '+' : '') + s;
+  }
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+  let D = null, members = [], state = { tab: (['matrix', 'member', 'match'].includes(store('snf-tab')) ? store('snf-tab') : 'matrix'), member: null, site: '' };
+
+  // ---------- the lock: data.enc is gzip + AES-256-GCM, key = PBKDF2-SHA256(password, salt, iter) ----------
+  const KEY_ITEM = 'snf-key';
+  const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  let ENV = null;
+  async function deriveKey(pw) {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: b64(ENV.salt), iterations: ENV.iter },
+      base, { name: 'AES-GCM', length: 256 }, true, ['decrypt']);
+  }
+  async function open(key) {
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(ENV.iv) }, key, b64(ENV.ct));
+    const text = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    return JSON.parse(text);
+  }
+  function showLock(msg) { $('#app').hidden = true; $('#lock').hidden = false; $('#err').textContent = msg || ''; $('#pw').focus(); }
+  function showApp(d) { D = d; $('#lock').hidden = true; $('#app').hidden = false; if (!members.length) init(); else render(); }
+  $('#lock').addEventListener('submit', async e => {
+    e.preventDefault();
+    $('#unlock').disabled = true; $('#err').textContent = 'Unlocking…';
+    try {
+      const key = await deriveKey($('#pw').value);
+      const d = await open(key);
+      if ($('#remember').checked) store(KEY_ITEM, toB64(await crypto.subtle.exportKey('raw', key)));
+      $('#pw').value = '';
+      showApp(d);
+    } catch (err) { $('#pw').value = ''; showLock('Wrong password.'); }
+    $('#unlock').disabled = false;
+  });
+  $('#signout').addEventListener('click', () => { try { localStorage.removeItem(KEY_ITEM); } catch (e) {} showLock(''); });
+  fetch('data.enc', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(async env => {
+    ENV = env;
+    const saved = store(KEY_ITEM);
+    if (saved) {
+      try {
+        const key = await crypto.subtle.importKey('raw', b64(saved), 'AES-GCM', true, ['decrypt']);
+        showApp(await open(key));
+        return;
+      } catch (e) { try { localStorage.removeItem(KEY_ITEM); } catch (x) {} showLock('The password has changed - enter the new one.'); return; }
+    }
+    showLock('');
+  }).catch(e => { showLock('The reports could not be loaded (' + e.message + '). Try again in a few minutes.'); });
+
+  function init() {
+    members = D.members.filter(m => D.total[m.name] && Object.keys(D.total[m.name]).length);
+    members.forEach((m, i) => m.color = css(MCOL[i % MCOL.length]));
+    state.member = members[0] && members[0].name;
+    const when = new Date(D.generated);
+    $('#sub').textContent = 'What every member produces and consumes in one day, to see who has a surplus of what and who runs short. Data from FIO, ' + when.toLocaleString('en-GB') + '.';
+    const mw = $('#members');
+    D.members.forEach(m => {
+      const has = members.includes(m);
+      const wf = m.workforce === 'fio' ? 'workforce from FIO' : m.workforce === 'calculated' ? 'workforce calculated' : 'no access';
+      mw.appendChild(el('span', { className: 'chip' }, (has ? '<span class="dot" style="background:' + m.color + '"></span>' : '') +
+        '<b>' + esc(m.name) + '</b> <span class="tag' + (has ? '' : ' warn') + '">' + (has ? m.bases + ' bases · ' + wf : 'no access in FIO (401)') + '</span>'));
+    });
+    const cats = [...new Set(Object.values(D.materials).map(m => m[0]))].sort();
+    cats.forEach(c => $('#cat').appendChild(el('option', { value: c }, esc(c))));
+    const tabs = $('#tabs');
+    VARIANTS.forEach(v => {
+      const b = el('button', { type: 'button', id: 'tab-' + v.id }, v.name);
+      b.setAttribute('role', 'tab');
+      b.onclick = () => { state.tab = v.id; store('snf-tab', v.id); render(); };
+      tabs.appendChild(b);
+    });
+    ['cat', 'lux', 'thr'].forEach(id => $('#' + id).addEventListener('input', render));
+    render();
+  }
+
+  // the net of a member for one material, with the controls applied
+  function row(name, t, src) {
+    const v = (src || D.total[name] || {})[t];
+    if (!v) return null;
+    const lux = D.materials[t] && D.materials[t][1];
+    const wf = $('#lux').checked && lux ? 0 : v[2];
+    return { in: v[0], out: v[1], wf, net: v[1] - v[0] - wf };
+  }
+  function tickers() {
+    const cat = $('#cat').value, thr = +$('#thr').value || 0;
+    return Object.keys(D.materials).filter(t => (!cat || D.materials[t][0] === cat) &&
+      members.some(m => { const r = row(m.name, t); return r && Math.abs(r.net) >= thr && Math.abs(r.net) > 1e-9; }));
+  }
+  const groupNet = t => members.reduce((a, m) => a + ((row(m.name, t) || {}).net || 0), 0);
+
+  function head(title, what, pros, cons) {
+    return '<h2>' + title + '</h2><p class="sub">' + what + '</p>';
+  }
+
+  function render() {
+    if (!D) return;
+    VARIANTS.forEach(v => $('#tab-' + v.id).setAttribute('aria-selected', String(v.id === state.tab)));
+    const view = $('#view');
+    view.innerHTML = '';
+    ({ matrix, member, match }[state.tab] || matrix)(view);
+  }
+
+  // ---------- Matrix ----------
+  function heat(x, max) {
+    if (!x) return '';
+    const k = Math.min(1, Math.log10(1 + Math.abs(x)) / Math.log10(1 + max));
+    const base = x > 0 ? css('--plus') : css('--minus');
+    return 'background:color-mix(in srgb,' + base + ' ' + Math.round(12 + k * 70) + '%, transparent)';
+  }
+  function matrix(view) {
+    view.innerHTML = head('Material × member',
+      'The whole group at a glance: a row per material, a column per member; green is a surplus, red a deficit, per day. Hover a cell for output, input and workforce.') +
+      '<div class="ctl"><label for="msort">Order</label><select id="msort"><option value="g">by group net (deficits first)</option><option value="c">by category</option><option value="t">by ticker</option></select></div>';
+    const ms = $('#msort'); ms.value = store('snf-msort') || 'g'; ms.onchange = () => { store('snf-msort', ms.value); render(); };
+    let ts = tickers();
+    const g = Object.fromEntries(ts.map(t => [t, groupNet(t)]));
+    ts.sort(ms.value === 'g' ? (a, b) => g[a] - g[b] : ms.value === 'c' ? (a, b) => D.materials[a][0].localeCompare(D.materials[b][0]) || a.localeCompare(b) : (a, b) => a.localeCompare(b));
+    const max = Math.max(1, ...ts.flatMap(t => members.map(m => Math.abs((row(m.name, t) || {}).net || 0))));
+    let h = '<div class="scroll"><table><thead><tr><th>Material</th><th class="cat">category</th>' +
+      members.map(m => '<th><span class="sw" style="background:' + m.color + '"></span>' + esc(m.name) + '</th>').join('') + '<th>Group</th></tr></thead><tbody>';
+    ts.forEach(t => {
+      h += '<tr><td class="t">' + t + '</td><td class="cat">' + esc(D.materials[t][0]) + '</td>' + members.map(m => {
+        const r = row(m.name, t);
+        if (!r || Math.abs(r.net) < 1e-9) return '<td class="num cell"></td>';
+        return '<td class="num cell" style="' + heat(r.net, max) + '" title="' + esc(m.name + ' · ' + t + ': output ' + fmt(r.out) + ', input ' + fmt(r.in) + ', workforce ' + fmt(r.wf)) + '">' + fmt(r.net, true) + '</td>';
+      }).join('') + '<td class="num cell" style="' + heat(g[t], max) + '"><b>' + fmt(g[t], true) + '</b></td></tr>';
+    });
+    view.insertAdjacentHTML('beforeend', h + '</tbody></table></div><div class="tag">' + ts.length + ' materials</div>');
+  }
+
+  // ---------- Member ----------
+  function member(view) {
+    const m = members.find(x => x.name === state.member) || members[0];
+    const sites = Object.keys(D.sites[m.name] || {}).sort();
+    view.innerHTML = head('Surplus and deficit of one member',
+      'Left: what the member runs short of. Right: what is in excess. Each with output, input and workforce. Pick a base to see that base alone.') +
+      '<div class="ctl"><label for="mm">Member</label><select id="mm">' + members.map(x => '<option' + (x === m ? ' selected' : '') + '>' + esc(x.name) + '</option>').join('') + '</select>' +
+      '<label for="ms">Base</label><select id="ms"><option value="">all bases</option>' + sites.map(s => '<option' + (s === state.site ? ' selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></div>';
+    $('#mm').onchange = e => { state.member = e.target.value; state.site = ''; render(); };
+    $('#ms').onchange = e => { state.site = e.target.value; render(); };
+    const src = state.site ? D.sites[m.name][state.site] : D.total[m.name];
+    const cat = $('#cat').value, thr = +$('#thr').value || 0;
+    const rs = Object.keys(src).filter(t => !cat || D.materials[t][0] === cat).map(t => Object.assign({ t }, row(m.name, t, src))).filter(r => Math.abs(r.net) >= Math.max(thr, 1e-9));
+    const neg = rs.filter(r => r.net < 0).sort((a, b) => a.net - b.net).slice(0, 25);
+    const pos = rs.filter(r => r.net > 0).sort((a, b) => b.net - a.net).slice(0, 25);
+    const max = Math.max(1, ...rs.map(r => Math.abs(r.net)));
+    const list = (arr, col) => arr.length ? '<div class="hbars">' + arr.map(r =>
+      '<div class="hb"><span class="mono">' + r.t + '</span><span class="track"><span class="fill" style="width:' + (100 * Math.abs(r.net) / max).toFixed(1) + '%;background:' + col + '"></span></span><span class="v num">' + fmt(r.net, true) + '</span>' +
+      '<span class="det">output ' + fmt(r.out) + ' · input ' + fmt(r.in) + ' · workforce ' + fmt(r.wf) + '</span></div>').join('') + '</div>' : '<div class="empty">none</div>';
+    view.insertAdjacentHTML('beforeend', '<div class="grid2"><div><h2 class="neg">Deficit</h2>' + list(neg, 'var(--minus)') + '</div><div><h2 class="pos">Surplus</h2>' + list(pos, 'var(--plus)') + '</div></div>' +
+      '<div class="tag">' + esc(m.name) + (state.site ? ' · ' + esc(state.site) : ' · ' + sites.length + ' bases') + ' · the 25 largest on each side</div>');
+  }
+
+  // ---------- Who can supply ----------
+  function match(view) {
+    view.innerHTML = head('Who can supply whom',
+      'For every material someone runs short of: who has it in excess and how much of the deficit the group covers itself. The rest has to be bought outside the group.');
+    const ts = tickers().map(t => {
+      const p = members.map(m => ({ m, v: (row(m.name, t) || {}).net || 0 }));
+      const need = p.filter(x => x.v < 0), have = p.filter(x => x.v > 0);
+      const N = -need.reduce((a, x) => a + x.v, 0), H = have.reduce((a, x) => a + x.v, 0);
+      return { t, need, have, N, H };
+    }).filter(r => r.N > 0).sort((a, b) => b.N - a.N);
+    const who = arr => arr.sort((a, b) => Math.abs(b.v) - Math.abs(a.v)).map(x => '<span class="chip"><span class="dot" style="background:' + x.m.color + '"></span>' + esc(x.m.name) + ' <span class="num">' + fmt(x.v, true) + '</span></span>').join(' ') || '<span class="tag">nobody</span>';
+    let h = '<div class="scroll"><table><thead><tr><th>Material</th><th class="who">short</th><th class="who">in excess</th><th>covered</th><th>to buy / day</th></tr></thead><tbody>';
+    ts.forEach(r => {
+      const c = Math.min(1, r.H / r.N);
+      h += '<tr><td class="t">' + r.t + '</td><td class="who">' + who(r.need) + '</td><td class="who">' + who(r.have) + '</td>' +
+        '<td class="num"><span class="cov"><i style="width:' + (c * 100).toFixed(0) + '%"></i></span> ' + Math.round(c * 100) + '%</td>' +
+        '<td class="num ' + (r.N > r.H ? 'neg' : '') + '">' + (r.N > r.H ? fmt(r.N - r.H) : '-') + '</td></tr>';
+    });
+    const full = ts.filter(r => r.H >= r.N).length;
+    view.insertAdjacentHTML('beforeend', h + '</tbody></table></div><div class="tag">' + ts.length + ' materials in deficit · ' + full + ' fully covered inside the group</div>');
+  }
+
+})();
+</script>
+</body>
+</html>
