@@ -141,6 +141,16 @@ def main():
     data = {}
     for name, r in raw.items():
         sites = r.get("sites") or []
+        # FIO keeps the production lines and the workforce of bases the member no longer has (records
+        # from 2022-2025 next to a /sites from today) - with a /sites, only its bases count
+        if sites:
+            live = {s["SiteId"] for s in sites}
+            dropped = {rec.get("PlanetName") for ep in ("production", "workforce")
+                       for rec in (r.get(ep) or []) if rec["SiteId"] not in live}
+            for ep in ("production", "workforce"):
+                if r.get(ep) is not None:
+                    r[ep] = [rec for rec in r[ep] if rec["SiteId"] in live]
+            r["dropped"] = sorted(x for x in dropped if x)
         # FIO's /sites can miss bases the production lines and the workforce still have - their names
         # come with those records too
         site_name = {}
@@ -173,7 +183,7 @@ def main():
             "production": "fio" if r.get("production") is not None else f"no access ({r.get('production_status')})",
             "workforce": wf_src if wf_src != "none" else f"no access ({r.get('workforce_status')})",
             "bases": len(site_name),
-            "bases_in_sites": len(sites),
+            "old_bases_dropped": r.get("dropped") or [],
             "updated": max([l.get("Timestamp") or "" for l in (r.get("production") or [])] or [""]) or None,
         })
         data[name] = {"total": total, "sites": per_site}
