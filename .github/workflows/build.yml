@@ -34,6 +34,8 @@ jobs:
       - name: Report from FIO
         env:
           FIO_KEY: ${{ secrets.FIO_KEY }}
+          CORP_SHEET_ID: ${{ secrets.CORP_SHEET_ID }}
+          SHEET_MEMBERS: ${{ secrets.SHEET_MEMBERS }}
         run: python fio_report.py "$RUNNER_TEMP/data.json"
       - name: Encrypt
         env:

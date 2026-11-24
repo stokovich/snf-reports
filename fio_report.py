@@ -25,7 +25,9 @@ import time
 import urllib.error
 import urllib.request
 
-API = "https://rest.fnar.net"
+from sheet_members import members_from_sheet
+
+API ="https://rest.fnar.net"
 TIERS = [("Pioneers", "PIONEER"), ("Settlers", "SETTLER"), ("Technicians", "TECHNICIAN"),
          ("Engineers", "ENGINEER"), ("Scientists", "SCIENTIST")]
 DAY_MS = 86400000.0
@@ -199,6 +201,32 @@ def main():
             "updated": max([l.get("Timestamp") or "" for l in (r.get("production") or [])] or [""]) or None,
         })
         data[name] = {"total": total, "sites": per_site}
+
+    # members who do not share their data in FIO - from the corp's coordination sheet (planned numbers)
+    sheet_id = os.environ.get("CORP_SHEET_ID")
+    sheet_names = [n.strip() for n in os.environ.get("SHEET_MEMBERS", "").split(",") if n.strip()]
+    sheet_names = [n for n in sheet_names if not (data.get(n.upper()) or {}).get("total")]
+    if sheet_id and sheet_names:
+        _, recipes = get("/recipes/allrecipes")
+        try:
+            from_sheet = members_from_sheet(sheet_id, sheet_names, recipes or [], buildings, needs, display_name)
+        except Exception as e:   # the sheet is not reachable - the FIO members still get their report
+            print(f"corp sheet: not read ({type(e).__name__})")
+            from_sheet = {}
+        for name, d in from_sheet.items():
+            total = {}
+            for b in d["sites"].values():
+                for t, v in b.items():
+                    for f, x in v.items():
+                        if x:
+                            add(total, t, f, x)
+            members = [m for m in members if m["name"].lower() != name.lower()]
+            data.pop(name.upper(), None)
+            members.append({"name": name, "production": "corp sheet", "workforce": "calculated",
+                            "bases": d["bases"], "old_bases_dropped": [], "updated": None,
+                            "unmatched": d["unmatched"]})
+            data[name] = {"total": total, "sites": d["sites"]}
+        print(f"corp sheet: {len(from_sheet)} members")
 
     def r(x):
         return round(x, 1) if abs(x) >= 1 else round(x, 3)

@@ -202,7 +202,7 @@ svg .tk { fill: var(--fg); font-weight: 500 }
     const mw = $('#members');
     D.members.forEach(m => {
       const has = members.includes(m);
-      const wf = m.workforce === 'fio' ? 'workforce from FIO' : m.workforce === 'calculated' ? 'workforce calculated' : 'no access';
+      const wf = m.production === 'corp sheet' ? 'planned, from the corp sheet' : m.workforce === 'fio' ? 'workforce from FIO' : m.workforce === 'calculated' ? 'workforce calculated' : 'no access';
       mw.appendChild(el('span', { className: 'chip' }, (has ? '<span class="dot" style="background:' + m.color + '"></span>' : '') +
         '<b>' + esc(m.name) + '</b> <span class="tag' + (has ? '' : ' warn') + '">' + (has ? m.bases + ' bases · ' + wf : 'no access in FIO (401)') + '</span>'));
     });
