@@ -36,7 +36,9 @@ def num(s):
 
 def match_recipe(key, recipes, out_by_mat, cycles):
     """The FIO recipe a sheet key means. Tokens after the building: the first k are the outputs (any order), the
-    rest a subset of the inputs. Several candidates - the one whose output x cycles is closest to the sheet's."""
+    rest a subset of the inputs. Several candidates - the one whose output x cycles is closest to the sheet's; with
+    the same outputs, the one with the fewest inputs the key does not name: the sheet names the extra inputs
+    (INC-C-HCP is 4 HCP, INC-C-HCP-MAI and INC-C-GRN-HCP-MAI are the recipes with maize and grain)."""
     parts = key.split("-")
     bld, toks = parts[0], parts[1:]
     cands = []
@@ -55,8 +57,11 @@ def match_recipe(key, recipes, out_by_mat, cycles):
         for x in rec["Outputs"]:
             want = out_by_mat.get(x["Ticker"])
             e += abs((want if want is not None else 0) - x["Amount"] * cycles)
-        return e
-    return min(cands, key=err)
+        return round(e, 3)
+
+    def unnamed(rec):
+        return len({x["Ticker"] for x in rec["Inputs"]} - set(toks))
+    return min(cands, key=lambda rec: (err(rec), unnamed(rec)))
 
 
 def members_from_sheet(sheet_id, names, recipes_list, buildings, needs, display_name):

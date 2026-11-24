@@ -8,9 +8,10 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['site/**', 'fio_report.py', 'tools/encrypt.py', '.github/workflows/build.yml']
+    paths: ['site/**', 'fio_report.py', 'sheet_members.py', 'tools/encrypt.py', '.github/workflows/build.yml']
 
 permissions:
+  actions: write
   contents: read
   pages: write
   id-token: write
@@ -25,6 +26,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # GitHub pauses the schedule of a repo with no activity for 60 days; enabling the workflow from the
+      # workflow itself every run keeps it counted as active
+      - name: Keep the schedule alive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/build.yml/enable" --silent || echo "keep-alive: not possible this run"
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:

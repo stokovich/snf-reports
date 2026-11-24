@@ -118,9 +118,16 @@ def main():
     st, grp = get(f"/auth/group/{group}", key)
     if st != 200 or not grp:
         sys.exit(f"group {group}: FIO answered {st}")
-    _, bl = get("/building/allbuildings")
-    _, mats = get("/material/allmaterials")
-    _, systems = get("/systemstars")
+    # a failure of FIO (5xx, timeout) fails the build - the site keeps the previous data instead of showing
+    # a member as "no access" for an hour; 401/403/404 is the member's own choice and is shown as such
+    def need(path, key=None, allowed=(200,)):
+        st, body = get(path, key)
+        if st not in allowed:
+            sys.exit(f"FIO answered {st} - the site keeps the previous build")
+        return st, body
+    _, bl = need("/building/allbuildings")
+    _, mats = need("/material/allmaterials")
+    _, systems = need("/systemstars")
     system_name = {s["NaturalId"]: s.get("Name") for s in (systems or [])}
     buildings = {b["Ticker"]: b for b in (bl or [])}
 
@@ -138,7 +145,7 @@ def main():
         name = u.get("GroupUserName")
         r = {}
         for ep in ("sites", "production", "workforce"):
-            r[ep + "_status"], r[ep] = get(f"/{ep}/{name}", key)
+            r[ep + "_status"], r[ep] = need(f"/{ep}/{name}", key, (200, 401, 403, 404))
         raw[name] = r
 
     # the needs per 100 workers of every tier, from whatever workforce the group shares; luxury = not essential
@@ -207,7 +214,7 @@ def main():
     sheet_names = [n.strip() for n in os.environ.get("SHEET_MEMBERS", "").split(",") if n.strip()]
     sheet_names = [n for n in sheet_names if not (data.get(n.upper()) or {}).get("total")]
     if sheet_id and sheet_names:
-        _, recipes = get("/recipes/allrecipes")
+        _, recipes = need("/recipes/allrecipes")
         try:
             from_sheet = members_from_sheet(sheet_id, sheet_names, recipes or [], buildings, needs, display_name)
         except Exception as e:   # the sheet is not reachable - the FIO members still get their report
