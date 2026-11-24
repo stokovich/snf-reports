@@ -19,7 +19,7 @@
 :root {
   --bg: #f3f5f7; --panel: #ffffff; --fg: #18202a; --muted: #5b6878; --line: #d9dfe6; --soft: #eaeef2;
   --accent: #c77700; --accent-ink: #ffffff;
-  --plus: #1f8a63; --plus-soft: #d5efe4; --minus: #c43d3d; --minus-soft: #f6dada;
+  --plus: #1f8a63; --plus-soft: #d5efe4; --minus: #c43d3d; --minus-soft: #f6dada; --calc: #9a7400;
   --m1: #2f6fb3; --m2: #c77700; --m3: #7a4fb0; --m4: #1f8a8a; --m5: #b0436e;
   --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -28,12 +28,12 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #11161c; --panel: #171e26; --fg: #e3e8ee; --muted: #93a0ae; --line: #2a3441; --soft: #1f2832;
   --accent: #f0a030; --accent-ink: #1a1206;
-  --plus: #46c08f; --plus-soft: #173a2d; --minus: #ef6b6b; --minus-soft: #44201f;
+  --plus: #46c08f; --plus-soft: #173a2d; --minus: #ef6b6b; --minus-soft: #44201f; --calc: #e8c547;
   --m1: #6aa5e8; --m2: #f0a030; --m3: #b08ae6; --m4: #4cc4c4; --m5: #e57ba3; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #11161c; --panel: #171e26; --fg: #e3e8ee; --muted: #93a0ae; --line: #2a3441; --soft: #1f2832;
   --accent: #f0a030; --accent-ink: #1a1206;
-  --plus: #46c08f; --plus-soft: #173a2d; --minus: #ef6b6b; --minus-soft: #44201f;
+  --plus: #46c08f; --plus-soft: #173a2d; --minus: #ef6b6b; --minus-soft: #44201f; --calc: #e8c547;
   --m1: #6aa5e8; --m2: #f0a030; --m3: #b08ae6; --m4: #4cc4c4; --m5: #e57ba3; color-scheme: dark }
 * { box-sizing: border-box }
 body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--f-body); margin: 0 }
@@ -48,6 +48,7 @@ h2 { font-size: 24px }
 .dot { width: 9px; height: 9px; border-radius: 50%; flex: none }
 .tag { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted) }
 .tag.warn { color: var(--minus) }
+.tag.calc { color: var(--calc) }
 .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; border-bottom: 1px solid var(--line) }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
 .tabs { display: flex; flex-wrap: wrap; gap: 4px }
@@ -258,7 +259,7 @@ svg .tk { fill: var(--fg); font-weight: 500 }
       const has = members.includes(m);
       const wf = m.production === 'corp sheet' ? 'planned, from the corp sheet' : m.workforce === 'fio' ? 'workforce from FIO' : m.workforce === 'calculated' ? 'workforce calculated' : 'no access';
       mw.appendChild(el('span', { className: 'chip' }, (has ? '<span class="dot" style="background:' + m.color + '"></span>' : '') +
-        '<b>' + esc(m.name) + '</b> <span class="tag' + (has ? '' : ' warn') + '">' + (has ? m.bases + ' bases · ' + wf : 'no access in FIO (401)') + '</span>'));
+        '<b>' + esc(m.name) + '</b> <span class="tag' + (has ? (m.workforce === 'calculated' ? ' calc' : '') : ' warn') + '">' + (has ? m.bases + ' bases · ' + wf : 'no access in FIO (401)') + '</span>'));
     });
     const cats = [...new Set(Object.values(D.materials).map(m => m[0]))].sort();
     cats.forEach(c => $('#cat').appendChild(el('option', { value: c }, esc(c))));
