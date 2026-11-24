@@ -222,10 +222,10 @@ def main():
                             add(total, t, f, x)
             members = [m for m in members if m["name"].lower() != name.lower()]
             data.pop(name.upper(), None)
-            members.append({"name": name, "production": "corp sheet", "workforce": "calculated",
+            members.append({"name": name.upper(), "production": "corp sheet", "workforce": "calculated",
                             "bases": d["bases"], "old_bases_dropped": [], "updated": None,
                             "unmatched": d["unmatched"]})
-            data[name] = {"total": total, "sites": d["sites"]}
+            data[name.upper()] = {"total": total, "sites": d["sites"]}
         print(f"corp sheet: {len(from_sheet)} members")
 
     def r(x):

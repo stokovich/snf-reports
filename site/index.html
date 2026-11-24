@@ -37,7 +37,7 @@
   --m1: #6aa5e8; --m2: #f0a030; --m3: #b08ae6; --m4: #4cc4c4; --m5: #e57ba3; color-scheme: dark }
 * { box-sizing: border-box }
 body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--f-body); margin: 0 }
-.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; display: grid; gap: 18px }
+.wrap { max-width: none; margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; display: grid; gap: 18px }
 h1, h2 { font-family: var(--f-display); font-weight: 600; letter-spacing: .02em; text-wrap: balance; margin: 0 }
 h1 { font-size: 34px; line-height: 1.05 }
 h2 { font-size: 24px }
@@ -60,7 +60,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 12px; min-width: 0 }
 .why { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px 20px; font-size: 13px; color: var(--muted) }
 .why b { color: var(--fg); font-weight: 600 }
-.scroll { overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 6px }
+.scroll { overflow: auto; max-height: calc(100vh - 150px); border: 1px solid var(--line); border-radius: 6px }
 table { border-collapse: separate; border-spacing: 0; font-size: 12.5px; width: max-content; min-width: 100% }
 th, td { padding: 3px 8px; border-bottom: 1px solid var(--soft); white-space: nowrap; text-align: right }
 th { position: sticky; top: 0; background: var(--panel); z-index: 2; font-weight: 600; cursor: default }
